@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WhidúFacilita — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --verde-900:#060d0a;
+    --verde-800:#0a1410;
+    --verde-700:#101d17;
+    --verde-600:#152720;
+    --verde-500:#39ff8a;
+    --verde-400:#39ff8a;
+    --verde-100:#152720;
+    --branco:#101d17;
+    --texto-invertido:#06120c;
+    --creme:#0a1410;
+    --tinta:#e8f5ee;
+    --tinta-suave:#7a9689;
+    --linha:#1e3328;
+    --erro:#ff6b5e;
+    --ambar:#ffb648;
+    --radius:10px;
+    --sombra: 0 0 30px -6px rgba(57,255,138,0.15);
+    --acid:#39ff8a;
+    --acid-dim:#1f8a53;
+    --acid-glow:rgba(57,255,138,0.18);
+    --line-bright:#2a4a38;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--creme);
+    color:var(--tinta);
+    min-height:100vh;
+    padding-bottom:90px;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .app{max-width:560px;margin:0 auto;min-height:100vh;background:var(--creme);position:relative;}
+  .app::before{
+    content:'';
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(rgba(57,255,138,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,138,0.025) 1px, transparent 1px);
+    background-size:26px 26px;
+    mask-image:radial-gradient(circle at 50% 0%, black, transparent 70%);
+  }
+
+  /* ===== TOPBAR ===== */
+  .topbar{
+    background:var(--verde-800);
+    color:var(--tinta);
+    padding:18px 20px 22px;
+    position:sticky; top:0; z-index:40;
+    border-bottom:1px solid var(--linha);
+  }
+  .topbar-row{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{
+    width:38px; height:38px; border-radius:11px;
+    background:var(--verde-600);
+    border:1px solid var(--acid-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px; color:var(--acid);
+    flex-shrink:0; box-shadow:0 0 16px -4px var(--acid-glow);
+  }
+  .brand-text .k{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--acid); font-weight:700; font-family:'IBM Plex Mono',monospace;}
+  .brand-text .n{font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; line-height:1.15;}
+  .logout-btn{
+    background:var(--verde-600); border:1px solid var(--linha);
+    color:var(--tinta); border-radius:10px; padding:8px 12px; font-size:12.5px;
+    font-weight:600; font-family:'Inter',sans-serif; cursor:pointer;
+  }
+  .topbar-sub{font-size:12.5px; color:var(--tinta-suave); margin-top:4px; font-family:'IBM Plex Mono',monospace;}
+
+  /* ===== LOGIN SCREEN ===== */
+  .auth-wrap{
+    min-height:100vh; display:flex; flex-direction:column; justify-content:center;
+    padding:32px 26px; max-width:560px; margin:0 auto;
+  }
+  .auth-mark{
+    width:64px; height:64px; border-radius:18px; margin:0 auto 22px;
+    background:var(--verde-600);
+    border:1px solid var(--acid-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:28px; color:var(--acid);
+    box-shadow:0 0 30px -6px var(--acid-glow);
+  }
+  .auth-title{text-align:center; font-size:26px; margin:0 0 6px;}
+  .auth-slogan{
+    text-align:center; color:var(--tinta-suave); font-size:13.5px;
+    margin:0 0 32px; line-height:1.5; padding:0 10px;
+  }
+  .auth-slogan b{color:var(--acid);}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block; font-size:12px; font-weight:700; color:var(--verde-800);
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px;
+  }
+  .field input{
+    width:100%; padding:14px 15px; border-radius:11px; border:1.5px solid var(--linha);
+    background:var(--branco); font-size:15.5px; font-family:'Inter',sans-serif; color:var(--tinta);
+    outline:none; transition:border-color .15s;
+  }
+  .field input:focus{border-color:var(--verde-500);}
+  .btn{
+    width:100%; padding:15px; border-radius:11px; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-primary{background:var(--acid); color:var(--texto-invertido); box-shadow:0 0 22px -6px var(--acid-glow);}
+  .btn-primary:active{background:var(--acid-dim);}
+  .btn-primary:disabled{opacity:.4;}
+  .btn-ghost{background:transparent; color:var(--acid); font-weight:600;}
+  .auth-toggle{text-align:center; margin-top:18px; font-size:13.5px; color:var(--tinta-suave);}
+  .auth-toggle a{color:var(--acid); font-weight:700; text-decoration:none; cursor:pointer;}
+  .auth-msg{
+    font-size:13px; padding:11px 13px; border-radius:10px; margin-bottom:14px;
+    display:none; line-height:1.4;
+  }
+  .auth-msg.show{display:block;}
+  .auth-msg.err{background:rgba(255,107,94,0.1); color:var(--erro); border:1px solid rgba(255,107,94,0.3);}
+  .auth-msg.ok{background:var(--verde-100); color:var(--acid); border:1px solid var(--acid-dim);}
+
+  /* ===== TABS ===== */
+  .tabs{
+    display:flex; gap:6px; padding:14px 16px 0; overflow-x:auto; scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    flex-shrink:0; padding:9px 15px; border-radius:999px; background:var(--branco);
+    border:1.5px solid var(--linha); font-size:13px; font-weight:700; color:var(--tinta-suave);
+    cursor:pointer; white-space:nowrap;
+  }
+  .tab.active{background:var(--acid); border-color:var(--acid); color:var(--texto-invertido);}
+
+  .content{padding:18px 16px 30px;}
+  .section-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .section-head h2{font-size:19px; margin:0;}
+  .count-pill{
+    font-size:11.5px; font-weight:700; color:var(--acid); background:var(--verde-100);
+    padding:3px 10px; border-radius:999px;
+  }
+
+  /* ===== CARDS: catálogos / subcategorias ===== */
+  .item-card{
+    background:var(--branco); border:1px solid var(--linha); border-radius:var(--radius);
+    padding:14px 15px; margin-bottom:10px; display:flex; align-items:center; gap:12px;
+  }
+  .item-card .drag{color:var(--tinta-suave); opacity:0.4; font-size:14px;}
+  .item-info{flex:1; min-width:0;}
+  .item-info .t{font-weight:700; font-size:14.5px; line-height:1.3;}
+  .item-info .s{font-size:12px; color:var(--tinta-suave); margin-top:2px;}
+  .item-actions{display:flex; gap:6px; flex-shrink:0;}
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; border:1px solid var(--linha); background:var(--creme);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px;
+  }
+  .icon-btn.danger{color:var(--erro); border-color:rgba(255,107,94,0.3); background:rgba(255,107,94,0.08);}
+  .badge-off{
+    font-size:10px; font-weight:700; color:var(--ambar); background:rgba(255,182,72,0.1); padding:2px 7px;
+    border-radius:6px; margin-left:6px; text-transform:uppercase; letter-spacing:.03em;
+  }
+
+  /* ===== Produtos (card com imagem) ===== */
+  .prod-card{
+    background:var(--branco); border:1px solid var(--linha); border-radius:var(--radius);
+    padding:12px; margin-bottom:10px; display:flex; gap:12px;
+  }
+  .prod-img{
+    width:64px; height:64px; border-radius:10px; background:var(--verde-100); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; color:var(--verde-500); font-size:22px;
+  }
+  .prod-img img{width:100%; height:100%; object-fit:cover;}
+  .prod-body{flex:1; min-width:0;}
+  .prod-name{font-weight:700; font-size:14.5px;}
+  .prod-cat{font-size:11.5px; color:var(--tinta-suave); margin-top:1px;}
+  .prod-price{font-family:'Space Grotesk',sans-serif; font-weight:600; color:var(--acid); font-size:15px; margin-top:4px;}
+  .prod-actions{display:flex; gap:6px; margin-top:8px;}
+
+  /* ===== FAB ===== */
+  .fab{
+    position:fixed; bottom:24px; right:50%; transform:translateX(280px);
+    width:56px; height:56px; border-radius:50%; background:var(--acid); color:var(--texto-invertido);
+    border:none; font-size:26px; box-shadow:0 0 24px -4px var(--acid-glow);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:30;
+  }
+  @media (max-width:620px){ .fab{ right:24px; transform:none; } }
+
+  /* ===== EMPTY STATE ===== */
+  .empty{
+    text-align:center; padding:50px 20px; color:var(--tinta-suave);
+  }
+  .empty .ic{font-size:34px; margin-bottom:10px;}
+  .empty .t{font-weight:700; color:var(--tinta); font-size:15px; margin-bottom:4px;}
+  .empty .s{font-size:13px; line-height:1.5;}
+
+  /* ===== MODAL / SHEET ===== */
+  .sheet-backdrop{
+    position:fixed; inset:0; background:rgba(15,32,26,0.5); z-index:60; display:none;
+    align-items:flex-end; justify-content:center;
+  }
+  .sheet-backdrop.show{display:flex;}
+  .sheet{
+    background:var(--creme); width:100%; max-width:560px; border-radius:22px 22px 0 0;
+    max-height:88vh; overflow-y:auto; padding:10px 20px 26px;
+    animation:slideup .22s ease-out;
+  }
+  @keyframes slideup{from{transform:translateY(100%);} to{transform:translateY(0);}}
+  .sheet-handle{width:38px; height:4px; background:var(--linha); border-radius:99px; margin:6px auto 16px;}
+  .sheet-title{font-size:19px; margin:0 0 16px;}
+  .form-row{display:flex; gap:10px;}
+  .form-row .field{flex:1;}
+  textarea{
+    width:100%; padding:13px 14px; border-radius:11px; border:1.5px solid var(--linha);
+    background:var(--branco); font-size:14.5px; font-family:'Inter',sans-serif; color:var(--tinta);
+    outline:none; resize:vertical; min-height:70px;
+  }
+  select{
+    width:100%; padding:13px 14px; border-radius:11px; border:1.5px solid var(--linha);
+    background:var(--branco); font-size:14.5px; font-family:'Inter',sans-serif; color:var(--tinta);
+    outline:none; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235c7268' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat; background-position:right 14px center;
+  }
+  .img-drop{
+    border:1.5px dashed var(--linha); border-radius:12px; padding:16px; text-align:center;
+    background:var(--branco); cursor:pointer; position:relative; overflow:hidden;
+  }
+  .img-drop img{max-width:100%; max-height:130px; border-radius:8px; margin-top:8px;}
+  .img-drop .hint{font-size:12.5px; color:var(--tinta-suave); margin-top:4px;}
+  .img-drop input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer;}
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between; padding:12px 2px;
+  }
+  .toggle-row .t{font-size:14px; font-weight:600;}
+  .switch{position:relative; width:44px; height:26px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{
+    position:absolute; inset:0; background:var(--linha); border-radius:99px; cursor:pointer; transition:.2s;
+  }
+  .slider:before{
+    content:''; position:absolute; width:20px; height:20px; left:3px; top:3px;
+    background:#e8f5ee; border-radius:50%; transition:.2s;
+  }
+  input:checked + .slider{background:var(--acid-dim);}
+  input:checked + .slider:before{transform:translateX(18px); background:var(--acid);}
+  .sheet-actions{display:flex; gap:10px; margin-top:20px;}
+  .sheet-actions .btn-secondary{
+    background:var(--branco); border:1.5px solid var(--linha); color:var(--tinta); font-weight:700;
+  }
+
+  .toast{
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+    background:var(--verde-600); color:var(--tinta); padding:12px 20px; border-radius:11px;
+    font-size:13.5px; font-weight:600; z-index:100; border:1px solid var(--acid-dim);
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+
+  .loader{
+    display:flex; align-items:center; justify-content:center; padding:60px 0; color:var(--tinta-suave); font-size:13.5px;
+  }
+  .spin{
+    width:22px; height:22px; border:2.5px solid var(--linha); border-top-color:var(--verde-600);
+    border-radius:50%; animation:sp .7s linear infinite; margin-right:10px;
+  }
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  .stat-row{display:flex; gap:10px; margin-bottom:18px;}
+  .stat-box{
+    flex:1; background:var(--branco); border:1px solid var(--linha); border-radius:var(--radius);
+    padding:14px; text-align:center;
+  }
+  .stat-box .v{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:600; color:var(--acid);}
+  .stat-box .l{font-size:11px; color:var(--tinta-suave); margin-top:2px; text-transform:uppercase; letter-spacing:.04em;}
+
+  /* ===== STATUS BADGES ===== */
+  .status-badge{
+    font-size:11px; font-weight:800; padding:4px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;
+  }
+  .status-pendente{background:rgba(255,182,72,0.1); color:var(--ambar);}
+  .status-confirmado{background:rgba(90,160,255,0.12); color:#5aa0ff;}
+  .status-em_entrega{background:rgba(180,120,255,0.12); color:#b478ff;}
+  .status-concluido{background:var(--verde-100); color:var(--acid);}
+  .status-cancelado{background:rgba(255,107,94,0.1); color:var(--erro);}
+
+  /* ===== CLIENTES LIST ===== */
+  .cliente-card{
+    background:var(--branco); border:1px solid var(--linha); border-radius:var(--radius);
+    padding:14px 15px; margin-bottom:10px; display:flex; align-items:center; gap:12px; cursor:pointer;
+  }
+  .cliente-avatar{
+    width:42px; height:42px; border-radius:50%; background:var(--verde-100); color:var(--acid);
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; flex-shrink:0;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .cliente-body{flex:1; min-width:0;}
+  .cliente-name{font-weight:700; font-size:14.5px;}
+  .cliente-meta{font-size:12px; color:var(--tinta-suave); margin-top:2px;}
+  .cliente-chevron{color:var(--tinta-suave); font-size:18px; flex-shrink:0;}
+
+  .back-row{display:flex; align-items:center; gap:8px; margin-bottom:14px; cursor:pointer; color:var(--acid); font-weight:700; font-size:14px;}
+
+  .pedido-detail-card{
+    background:var(--branco); border:1px solid var(--linha); border-radius:var(--radius);
+    padding:14px 15px; margin-bottom:10px;
+  }
+  .pedido-detail-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;}
+  .pedido-date{font-size:12px; color:var(--tinta-suave);}
+  .pedido-items-list{margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);}
+  .pedido-item-row{display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; color:var(--tinta-suave);}
+  .pedido-item-row .n{color:var(--tinta); font-weight:600;}
+
+  /* ===== COMUNICADOS ===== */
+  .comunicado-card{
+    background:var(--branco); border:1px solid var(--linha); border-radius:var(--radius);
+    padding:14px 15px; margin-bottom:10px;
+  }
+  .comunicado-title{font-weight:700; font-size:14.5px; margin-bottom:4px;}
+  .comunicado-msg{font-size:13px; color:var(--tinta-suave); line-height:1.5; margin-bottom:8px;}
+  .comunicado-meta{display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--tinta-suave);}
+  .comunicado-timer{font-weight:700; color:var(--acid);}
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-mark">W</div>
+  <h1 class="auth-title">WhidúFacilita</h1>
+  <p class="auth-slogan">Aqui no Whidú facilitamos a sua vida, <b>WhidúFacilita</b><br><span style="opacity:.7">— Painel Administrativo —</span></p>
+
+  <div id="authMsg" class="auth-msg"></div>
+
+  <div class="field">
+    <label>E-mail</label>
+    <input type="email" id="authEmail" placeholder="seu@email.com" autocomplete="username">
+  </div>
+  <div class="field">
+    <label>Senha</label>
+    <input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password">
+  </div>
+
+  <button class="btn btn-primary" id="authSubmitBtn" onclick="handleAuthSubmit()">Entrar</button>
+  <div class="auth-toggle" id="authToggle">
+    Ainda não tem conta? <a onclick="toggleAuthMode()">Criar conta de administrador</a>
+  </div>
+</div>
+
+<div id="app" class="app" style="display:none;">
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="brand">
+        <div class="brand-mark">W</div>
+        <div class="brand-text">
+          <div class="k">Admin</div>
+          <div class="n">WhidúFacilita</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">Sair</button>
+    </div>
+    <div class="topbar-sub" id="userEmailLabel"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="catalogos" onclick="switchTab('catalogos')">📂 Catálogos</div>
+    <div class="tab" data-tab="produtos" onclick="switchTab('produtos')">🛒 Produtos</div>
+    <div class="tab" data-tab="clientes" onclick="switchTab('clientes')">👥 Clientes</div>
+    <div class="tab" data-tab="avaliacoes" onclick="switchTab('avaliacoes')">⭐ Avaliações</div>
+    <div class="tab" data-tab="comunicados" onclick="switchTab('comunicados')">📢 Comunicados</div>
+  </div>
+
+  <div class="content" id="content">
+    <div class="loader"><div class="spin"></div>Carregando…</div>
+  </div>
+
+  <button class="fab" id="fabBtn" onclick="openFabAction()">+</button>
+</div>
+
+<div class="sheet-backdrop" id="sheetBackdrop" onclick="if(event.target===this) closeSheet()">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   WHIDÚFACILITA — ADMIN
+   ============================================================ */
+const SUPABASE_URL = "https://elsfqnvddwwiilckyxmj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_3OoBNBT6h5040oDB7RZCrg_nKt5oZhd";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let authMode = 'login'; // or 'signup'
+let currentTab = 'catalogos';
+let cache = { catalogos: [], subcategorias: [], produtos: [], pedidos: [], avaliacoes: [], clientes: [], comunicados: [] };
+let selectedClienteId = null;
+
+/* ---------- helpers ---------- */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function fmtKz(v){
+  return 'Kz ' + Number(v).toLocaleString('pt-AO', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function esc(s){
+  if(s===null||s===undefined) return '';
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- AUTH ---------- */
+function toggleAuthMode(){
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  document.getElementById('authSubmitBtn').textContent = authMode === 'login' ? 'Entrar' : 'Criar conta';
+  document.getElementById('authToggle').innerHTML = authMode === 'login'
+    ? 'Ainda não tem conta? <a onclick="toggleAuthMode()">Criar conta de administrador</a>'
+    : 'Já tem conta? <a onclick="toggleAuthMode()">Entrar</a>';
+  hideAuthMsg();
+}
+function showAuthMsg(msg, type){
+  const el = document.getElementById('authMsg');
+  el.textContent = msg;
+  el.className = 'auth-msg show ' + type;
+}
+function hideAuthMsg(){
+  document.getElementById('authMsg').classList.remove('show');
+}
+async function handleAuthSubmit(){
+  const email = document.getElementById('authEmail').value.trim();
+  const pass = document.getElementById('authPass').value;
+  const btn = document.getElementById('authSubmitBtn');
+  hideAuthMsg();
+
+  if(!email || !pass){
+    showAuthMsg('Preenche e-mail e senha.', 'err'); return;
+  }
+  if(pass.length < 6){
+    showAuthMsg('A senha precisa ter pelo menos 6 caracteres.', 'err'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = authMode === 'login' ? 'Entrando…' : 'Criando…';
+
+  try{
+    if(authMode === 'login'){
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if(error) throw error;
+      currentUser = data.user;
+      enterApp();
+    } else {
+      const { data, error } = await sb.auth.signUp({ email, password: pass });
+      if(error) throw error;
+      if(data.session){
+        currentUser = data.user;
+        enterApp();
+      } else {
+        showAuthMsg('Conta criada! Já podes entrar com o e-mail e senha.', 'ok');
+        authMode = 'login';
+        toggleAuthMode();
+        authMode = 'login';
+      }
+    }
+  }catch(err){
+    let msg = err.message || 'Algo correu mal. Tenta novamente.';
+    if(msg.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';
+    if(msg.includes('already registered') || msg.includes('already exists')) msg = 'Este e-mail já tem conta. Tenta entrar.';
+    showAuthMsg(msg, 'err');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Entrar' : 'Criar conta';
+  }
+}
+async function handleLogout(){
+  await sb.auth.signOut();
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+}
+async function checkSession(){
+  const { data } = await sb.auth.getSession();
+  if(data.session){
+    currentUser = data.session.user;
+    enterApp();
+  }
+}
+function enterApp(){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('userEmailLabel').textContent = currentUser.email;
+  loadAll();
+}
+
+/* ---------- DATA LOADING ---------- */
+async function loadAll(){
+  document.getElementById('content').innerHTML = '<div class="loader"><div class="spin"></div>Carregando…</div>';
+  try{
+    const [catRes, subRes, prodRes, pedRes, avaRes, cliRes, comRes] = await Promise.all([
+      sb.from('catalogos').select('*').order('ordem'),
+      sb.from('subcategorias').select('*').order('ordem'),
+      sb.from('produtos').select('*').order('ordem'),
+      sb.from('pedidos').select('*').order('created_at', {ascending:false}).limit(200),
+      sb.from('avaliacoes').select('*').order('created_at', {ascending:false}).limit(50),
+      sb.from('clientes').select('*').order('created_at', {ascending:false}),
+      sb.from('comunicados').select('*').order('created_at', {ascending:false})
+    ]);
+    cache.catalogos = catRes.data || [];
+    cache.subcategorias = subRes.data || [];
+    cache.produtos = prodRes.data || [];
+    cache.pedidos = pedRes.data || [];
+    cache.avaliacoes = avaRes.data || [];
+    cache.clientes = cliRes.data || [];
+    cache.comunicados = comRes.data || [];
+    await loadPedidoItens();
+    renderTab();
+  }catch(err){
+    document.getElementById('content').innerHTML = `<div class="empty"><div class="ic">⚠️</div><div class="t">Erro ao carregar dados</div><div class="s">${esc(err.message)}</div></div>`;
+  }
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  selectedClienteId = null;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  renderTab();
+}
+
+function renderTab(){
+  const c = document.getElementById('content');
+  const fab = document.getElementById('fabBtn');
+  fab.style.display = (currentTab==='catalogos' || currentTab==='produtos' || currentTab==='comunicados') ? 'flex' : 'none';
+
+  if(currentTab === 'catalogos') return renderCatalogos(c);
+  if(currentTab === 'produtos') return renderProdutos(c);
+  if(currentTab === 'clientes') return renderClientes(c);
+  if(currentTab === 'avaliacoes') return renderAvaliacoes(c);
+  if(currentTab === 'comunicados') return renderComunicados(c);
+}
+
+/* ---------- CATÁLOGOS + SUBCATEGORIAS ---------- */
+function renderCatalogos(c){
+  let html = `<div class="section-head"><h2>Catálogos</h2><span class="count-pill">${cache.catalogos.length}</span></div>`;
+
+  if(cache.catalogos.length === 0){
+    html += `<div class="empty"><div class="ic">📂</div><div class="t">Nenhum catálogo ainda</div><div class="s">Toca no + para criar o primeiro catálogo.</div></div>`;
+  }
+
+  cache.catalogos.forEach(cat=>{
+    const subs = cache.subcategorias.filter(s=>s.catalogo_id===cat.id);
+    html += `
+      <div class="item-card" style="align-items:flex-start;">
+        <div class="item-info">
+          <div class="t">${esc(cat.nome)} ${!cat.ativo?'<span class="badge-off">Inativo</span>':''}</div>
+          <div class="s">${subs.length} subcategoria${subs.length!==1?'s':''}</div>
+        </div>
+        <div class="item-actions">
+          <button class="icon-btn" onclick="openCatalogoForm('${cat.id}')">✏️</button>
+          <button class="icon-btn danger" onclick="deleteCatalogo('${cat.id}')">🗑️</button>
+        </div>
+      </div>`;
+    subs.forEach(sub=>{
+      const prodCount = cache.produtos.filter(p=>p.subcategoria_id===sub.id).length;
+      html += `
+        <div class="item-card" style="margin-left:20px; background:var(--verde-100); border-color:var(--acid-dim);">
+          <div class="item-info">
+            <div class="t" style="font-size:13.5px;">↳ ${esc(sub.nome)} ${!sub.ativo?'<span class="badge-off">Inativo</span>':''}</div>
+            <div class="s">${prodCount} produto${prodCount!==1?'s':''}</div>
+          </div>
+          <div class="item-actions">
+            <button class="icon-btn" onclick="openSubForm('${sub.id}','${cat.id}')">✏️</button>
+            <button class="icon-btn danger" onclick="deleteSub('${sub.id}')">🗑️</button>
+          </div>
+        </div>`;
+    });
+    html += `<div style="margin:0 0 18px 20px;"><button class="btn btn-ghost" style="width:auto; padding:8px 14px; font-size:13px;" onclick="openSubForm(null,'${cat.id}')">+ Subcategoria em ${esc(cat.nome)}</button></div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+function openFabAction(){
+  if(currentTab === 'catalogos') openCatalogoForm(null);
+  if(currentTab === 'produtos') openProdutoForm(null);
+  if(currentTab === 'comunicados') openComunicadoForm();
+}
+
+function openCatalogoForm(id){
+  const cat = id ? cache.catalogos.find(x=>x.id===id) : null;
+  const html = `
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">${cat?'Editar catálogo':'Novo catálogo'}</h3>
+    <div class="field">
+      <label>Nome do catálogo</label>
+      <input type="text" id="f_nome" value="${cat?esc(cat.nome):''}" placeholder="Ex: Delivery">
+    </div>
+    <div class="toggle-row">
+      <span class="t">Catálogo ativo (visível para clientes)</span>
+      <label class="switch"><input type="checkbox" id="f_ativo" ${(!cat||cat.ativo)?'checked':''}><span class="slider"></span></label>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCatalogo('${id||''}')">Guardar</button>
+    </div>`;
+  openSheet(html);
+}
+async function saveCatalogo(id){
+  const nome = document.getElementById('f_nome').value.trim();
+  const ativo = document.getElementById('f_ativo').checked;
+  if(!nome){ toast('Preenche o nome do catálogo.'); return; }
+  try{
+    if(id){
+      const {error} = await sb.from('catalogos').update({nome, ativo}).eq('id', id);
+      if(error) throw error;
+      toast('Catálogo atualizado ✓');
+    }else{
+      const ordem = cache.catalogos.length;
+      const {error} = await sb.from('catalogos').insert({nome, ativo, ordem});
+      if(error) throw error;
+      toast('Catálogo criado ✓');
+    }
+    closeSheet();
+    loadAll();
+  }catch(err){ toast('Erro: '+err.message); }
+}
+async function deleteCatalogo(id){
+  if(!confirm('Apagar este catálogo e tudo dentro dele (subcategorias e produtos)? Esta ação não pode ser desfeita.')) return;
+  try{
+    const {error} = await sb.from('catalogos').delete().eq('id', id);
+    if(error) throw error;
+    toast('Catálogo apagado');
+    loadAll();
+  }catch(err){
+    if(err.message && err.message.includes('foreign key')){
+      const desativar = confirm('Este catálogo tem produtos com pedidos já registados, por isso não pode ser apagado.\n\nQueres desativá-lo agora? Ele deixa de aparecer para os clientes, mas o histórico fica guardado.');
+      if(desativar){
+        const {error: updErr} = await sb.from('catalogos').update({ativo:false}).eq('id', id);
+        if(updErr){ toast('Erro: '+updErr.message); return; }
+        toast('Catálogo desativado ✓');
+        loadAll();
+      }
+    } else {
+      toast('Erro: '+err.message);
+    }
+  }
+}
+
+function openSubForm(id, catalogoId){
+  const sub = id ? cache.subcategorias.find(x=>x.id===id) : null;
+  const catOptions = cache.catalogos.map(c=>`<option value="${c.id}" ${((sub?sub.catalogo_id:catalogoId)===c.id)?'selected':''}>${esc(c.nome)}</option>`).join('');
+  const html = `
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">${sub?'Editar subcategoria':'Nova subcategoria'}</h3>
+    <div class="field">
+      <label>Catálogo</label>
+      <select id="f_catalogo">${catOptions}</select>
+    </div>
+    <div class="field">
+      <label>Nome da subcategoria</label>
+      <input type="text" id="f_nome" value="${sub?esc(sub.nome):''}" placeholder="Ex: Fast Food & Hambúrgueres">
+    </div>
+    <div class="toggle-row">
+      <span class="t">Subcategoria ativa</span>
+      <label class="switch"><input type="checkbox" id="f_ativo" ${(!sub||sub.ativo)?'checked':''}><span class="slider"></span></label>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSub('${id||''}')">Guardar</button>
+    </div>`;
+  openSheet(html);
+}
+async function saveSub(id){
+  const nome = document.getElementById('f_nome').value.trim();
+  const catalogo_id = document.getElementById('f_catalogo').value;
+  const ativo = document.getElementById('f_ativo').checked;
+  if(!nome || !catalogo_id){ toast('Preenche todos os campos.'); return; }
+  try{
+    if(id){
+      const {error} = await sb.from('subcategorias').update({nome, catalogo_id, ativo}).eq('id', id);
+      if(error) throw error;
+      toast('Subcategoria atualizada ✓');
+    }else{
+      const ordem = cache.subcategorias.filter(s=>s.catalogo_id===catalogo_id).length;
+      const {error} = await sb.from('subcategorias').insert({nome, catalogo_id, ativo, ordem});
+      if(error) throw error;
+      toast('Subcategoria criada ✓');
+    }
+    closeSheet();
+    loadAll();
+  }catch(err){ toast('Erro: '+err.message); }
+}
+async function deleteSub(id){
+  if(!confirm('Apagar esta subcategoria e os produtos dentro dela?')) return;
+  try{
+    const {error} = await sb.from('subcategorias').delete().eq('id', id);
+    if(error) throw error;
+    toast('Subcategoria apagada');
+    loadAll();
+  }catch(err){
+    if(err.message && err.message.includes('foreign key')){
+      const desativar = confirm('Esta subcategoria tem produtos com pedidos já registados, por isso não pode ser apagada.\n\nQueres desativá-la agora? Ela deixa de aparecer para os clientes, mas o histórico fica guardado.');
+      if(desativar){
+        const {error: updErr} = await sb.from('subcategorias').update({ativo:false}).eq('id', id);
+        if(updErr){ toast('Erro: '+updErr.message); return; }
+        toast('Subcategoria desativada ✓');
+        loadAll();
+      }
+    } else {
+      toast('Erro: '+err.message);
+    }
+  }
+}
+
+/* ---------- PRODUTOS ---------- */
+function renderProdutos(c){
+  let html = `<div class="section-head"><h2>Produtos</h2><span class="count-pill">${cache.produtos.length}</span></div>`;
+
+  if(cache.subcategorias.length === 0){
+    html += `<div class="empty"><div class="ic">⚠️</div><div class="t">Crie uma subcategoria primeiro</div><div class="s">Vá em Catálogos e adicione uma subcategoria antes de criar produtos.</div></div>`;
+    c.innerHTML = html;
+    return;
+  }
+
+  if(cache.produtos.length === 0){
+    html += `<div class="empty"><div class="ic">🛒</div><div class="t">Nenhum produto ainda</div><div class="s">Toca no + para adicionar o primeiro produto.</div></div>`;
+  }
+
+  cache.produtos.forEach(p=>{
+    const sub = cache.subcategorias.find(s=>s.id===p.subcategoria_id);
+    const cat = sub ? cache.catalogos.find(c2=>c2.id===sub.catalogo_id) : null;
+    html += `
+      <div class="prod-card">
+        <div class="prod-img">${p.imagem_url ? `<img src="${esc(p.imagem_url)}">` : '🛍️'}</div>
+        <div class="prod-body">
+          <div class="prod-name">${esc(p.nome)} ${!p.ativo?'<span class="badge-off">Inativo</span>':''}</div>
+          <div class="prod-cat">${cat?esc(cat.nome)+' • ':''}${sub?esc(sub.nome):'—'}</div>
+          <div class="prod-price">${fmtKz(p.preco)}</div>
+          <div class="prod-actions">
+            <button class="icon-btn" onclick="openProdutoForm('${p.id}')">✏️</button>
+            <button class="icon-btn danger" onclick="deleteProduto('${p.id}')">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+function openProdutoForm(id){
+  const p = id ? cache.produtos.find(x=>x.id===id) : null;
+  const subOptions = cache.subcategorias.map(s=>{
+    const cat = cache.catalogos.find(c=>c.id===s.catalogo_id);
+    return `<option value="${s.id}" ${(p?p.subcategoria_id:'')===s.id?'selected':''}>${cat?esc(cat.nome)+' — ':''}${esc(s.nome)}</option>`;
+  }).join('');
+
+  const html = `
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">${p?'Editar produto':'Novo produto'}</h3>
+
+    <div class="field">
+      <label>Subcategoria</label>
+      <select id="f_sub">${subOptions}</select>
+    </div>
+    <div class="field">
+      <label>Nome do produto</label>
+      <input type="text" id="f_nome" value="${p?esc(p.nome):''}" placeholder="Ex: Rancho de Conveniência">
+    </div>
+    <div class="field">
+      <label>Descrição</label>
+      <textarea id="f_desc" placeholder="Descreve o produto...">${p?esc(p.descricao||''):''}</textarea>
+    </div>
+    <div class="field">
+      <label>Preço (Kz)</label>
+      <input type="number" id="f_preco" value="${p?p.preco:''}" placeholder="Ex: 3000" step="0.01" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>Imagem do produto</label>
+      <div class="img-drop" id="imgDrop">
+        <div id="imgDropText">📷 Toca para escolher uma foto</div>
+        <img id="imgPreview" src="${p&&p.imagem_url?esc(p.imagem_url):''}" style="${p&&p.imagem_url?'':'display:none;'}">
+        <input type="file" accept="image/*" id="f_imagem_file" onchange="handleImagePick(event)">
+      </div>
+      <div class="hint">A imagem é convertida e guardada automaticamente.</div>
+    </div>
+    <div class="toggle-row">
+      <span class="t">Produto ativo (visível para clientes)</span>
+      <label class="switch"><input type="checkbox" id="f_ativo" ${(!p||p.ativo)?'checked':''}><span class="slider"></span></label>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">Cancelar</button>
+      <button class="btn btn-primary" id="saveProdBtn" onclick="saveProduto('${id||''}')">Guardar</button>
+    </div>`;
+  openSheet(html);
+  window._imgBase64 = p ? p.imagem_url : null;
+}
+
+function handleImagePick(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  if(file.size > 1500000){
+    toast('Imagem muito grande. Escolhe uma foto até ~1.5MB.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    window._imgBase64 = e.target.result;
+    document.getElementById('imgPreview').src = e.target.result;
+    document.getElementById('imgPreview').style.display = 'block';
+    document.getElementById('imgDropText').textContent = '📷 Toca para trocar a foto';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProduto(id){
+  const nome = document.getElementById('f_nome').value.trim();
+  const descricao = document.getElementById('f_desc').value.trim();
+  const preco = parseFloat(document.getElementById('f_preco').value);
+  const subcategoria_id = document.getElementById('f_sub').value;
+  const ativo = document.getElementById('f_ativo').checked;
+  const imagem_url = window._imgBase64 || null;
+
+  if(!nome || !subcategoria_id || isNaN(preco)){
+    toast('Preenche nome, subcategoria e preço.'); return;
+  }
+  const btn = document.getElementById('saveProdBtn');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  try{
+    if(id){
+      const {error} = await sb.from('produtos').update({
+        nome, descricao, preco, subcategoria_id, ativo, imagem_url, updated_at: new Date().toISOString()
+      }).eq('id', id);
+      if(error) throw error;
+      toast('Produto atualizado ✓');
+    }else{
+      const ordem = cache.produtos.filter(p=>p.subcategoria_id===subcategoria_id).length;
+      const {error} = await sb.from('produtos').insert({
+        nome, descricao, preco, subcategoria_id, ativo, imagem_url, ordem
+      });
+      if(error) throw error;
+      toast('Produto criado ✓');
+    }
+    closeSheet();
+    loadAll();
+  }catch(err){
+    toast('Erro: '+err.message);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
+}
+async function deleteProduto(id){
+  if(!confirm('Apagar este produto?')) return;
+  try{
+    const {error} = await sb.from('produtos').delete().eq('id', id);
+    if(error) throw error;
+    toast('Produto apagado');
+    loadAll();
+  }catch(err){
+    if(err.message && err.message.includes('foreign key')){
+      const desativar = confirm('Este produto já tem pedidos registados, por isso não pode ser apagado (para não perder o histórico de vendas).\n\nQueres desativá-lo agora? Ele deixa de aparecer para os clientes, mas o histórico fica guardado.');
+      if(desativar){
+        const {error: updErr} = await sb.from('produtos').update({ativo:false}).eq('id', id);
+        if(updErr){ toast('Erro: '+updErr.message); return; }
+        toast('Produto desativado ✓');
+        loadAll();
+      }
+    } else {
+      toast('Erro: '+err.message);
+    }
+  }
+}
+
+/* ---------- CLIENTES + PEDIDOS ---------- */
+const statusLabels = {pendente:'⏳ Pendente', confirmado:'✅ Confirmado', em_entrega:'🚚 Em entrega', concluido:'🎉 Concluído', cancelado:'❌ Cancelado'};
+
+function renderClientes(c){
+  if(selectedClienteId){
+    return renderClientePedidos(c, selectedClienteId);
+  }
+
+  let html = `<div class="section-head"><h2>Clientes</h2><span class="count-pill">${cache.clientes.length}</span></div>`;
+
+  if(cache.clientes.length === 0){
+    html += `<div class="empty"><div class="ic">👥</div><div class="t">Nenhum cliente ainda</div><div class="s">Assim que alguém se cadastrar no app público, vai aparecer aqui.</div></div>`;
+    c.innerHTML = html;
+    return;
+  }
+
+  // sort clients by most recent order
+  const clientesComPedidos = cache.clientes.map(cli=>{
+    const pedidosDoCliente = cache.pedidos.filter(p=>p.cliente_id===cli.id);
+    const maisRecente = pedidosDoCliente[0]; // pedidos already ordered desc
+    return {cli, count: pedidosDoCliente.length, ultimaData: maisRecente ? maisRecente.created_at : cli.created_at};
+  }).sort((a,b)=> new Date(b.ultimaData) - new Date(a.ultimaData));
+
+  clientesComPedidos.forEach(({cli, count})=>{
+    const initials = cli.nome.trim().split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    html += `
+      <div class="cliente-card" onclick="openClientePedidos('${cli.id}')" style="${cli.banido?'opacity:0.55;':''}">
+        <div class="cliente-avatar" style="${cli.banido?'background:rgba(255,107,94,0.15); color:var(--erro);':''}">${esc(initials)}</div>
+        <div class="cliente-body">
+          <div class="cliente-name">${esc(cli.nome)} ${cli.banido?'<span class="badge-off" style="background:rgba(255,107,94,0.15); color:var(--erro);">Banido</span>':''}</div>
+          <div class="cliente-meta">${esc(cli.telefone)} · ${count} pedido${count!==1?'s':''}</div>
+        </div>
+        <div class="cliente-chevron">›</div>
+      </div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+function openClientePedidos(clienteId){
+  selectedClienteId = clienteId;
+  renderTab();
+}
+
+function renderClientePedidos(c, clienteId){
+  const cli = cache.clientes.find(x=>x.id===clienteId);
+  if(!cli){ selectedClienteId=null; renderTab(); return; }
+
+  const pedidosDoCliente = cache.pedidos.filter(p=>p.cliente_id===clienteId); // already sorted desc by created_at
+
+  let html = `<div class="back-row" onclick="selectedClienteId=null; renderTab();">‹ Voltar aos clientes</div>`;
+  html += `<div class="section-head"><h2>${esc(cli.nome)}</h2><span class="count-pill">${pedidosDoCliente.length}</span></div>`;
+  html += `<div class="s" style="font-size:12.5px; color:var(--tinta-suave); margin:-8px 0 16px;">${esc(cli.telefone)}</div>`;
+
+  if(cli.banido){
+    html += `
+      <div class="item-card" style="background:rgba(255,107,94,0.08); border-color:rgba(255,107,94,0.3); flex-direction:column; align-items:flex-start; gap:8px;">
+        <div class="t" style="color:var(--erro);">🚫 Este cliente está banido</div>
+        ${cli.banido_motivo ? `<div class="s">Motivo: ${esc(cli.banido_motivo)}</div>` : ''}
+        <button class="btn btn-secondary" style="width:auto; padding:8px 14px; font-size:13px;" onclick="desbanirCliente('${cli.id}')">Desbanir cliente</button>
+      </div>`;
+  } else {
+    html += `
+      <div style="margin-bottom:16px;">
+        <button class="btn btn-secondary" style="width:auto; padding:9px 15px; font-size:13px; color:var(--erro); border-color:rgba(255,107,94,0.3);" onclick="banirCliente('${cli.id}')">🚫 Banir este cliente</button>
+      </div>`;
+  }
+
+  if(pedidosDoCliente.length === 0){
+    html += `<div class="empty"><div class="ic">📦</div><div class="t">Sem pedidos ainda</div></div>`;
+    c.innerHTML = html;
+    return;
+  }
+
+  pedidosDoCliente.forEach(ped=>{
+    const itens = (cache.pedido_itens_all || []).filter(i=>i.pedido_id===ped.id);
+    const data = new Date(ped.created_at).toLocaleDateString('pt-AO', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+    html += `
+      <div class="pedido-detail-card">
+        <div class="pedido-detail-top">
+          <div>
+            <div class="pedido-date">${data}${ped.data_agendada?' · Agendado: '+esc(ped.data_agendada):''}</div>
+            <div class="prod-price" style="margin-top:2px;">${fmtKz(ped.total)}</div>
+          </div>
+          <select onchange="updatePedidoStatus('${ped.id}', this.value)" style="font-size:12px; padding:7px 9px; width:auto;">
+            ${Object.entries(statusLabels).map(([k,v])=>`<option value="${k}" ${ped.status===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="pedido-items-list">
+          ${itens.map(it=>`<div class="pedido-item-row"><span class="n">${it.quantidade}× ${esc(it.produto_nome)}</span><span>${fmtKz(it.preco_unitario * it.quantidade)}</span></div>`).join('') || '<div class="pedido-item-row">Itens não disponíveis</div>'}
+        </div>
+      </div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+async function banirCliente(clienteId){
+  const motivo = prompt('Motivo do banimento (opcional):');
+  if(motivo === null) return; // cancelou
+  try{
+    const { error } = await sb.from('clientes').update({
+      banido: true, banido_em: new Date().toISOString(), banido_motivo: motivo || null
+    }).eq('id', clienteId);
+    if(error) throw error;
+    toast('Cliente banido');
+    const cli = cache.clientes.find(x=>x.id===clienteId);
+    if(cli){ cli.banido = true; cli.banido_motivo = motivo || null; }
+    renderTab();
+  }catch(err){ toast('Erro: '+err.message); }
+}
+async function desbanirCliente(clienteId){
+  if(!confirm('Desbanir este cliente? Ele vai voltar a conseguir fazer pedidos.')) return;
+  try{
+    const { error } = await sb.from('clientes').update({
+      banido: false, banido_em: null, banido_motivo: null
+    }).eq('id', clienteId);
+    if(error) throw error;
+    toast('Cliente desbanido');
+    const cli = cache.clientes.find(x=>x.id===clienteId);
+    if(cli){ cli.banido = false; cli.banido_motivo = null; }
+    renderTab();
+  }catch(err){ toast('Erro: '+err.message); }
+}
+
+async function updatePedidoStatus(id, status){
+  try{
+    const {error} = await sb.from('pedidos').update({status}).eq('id', id);
+    if(error) throw error;
+    toast('Status atualizado ✓');
+    // update cache locally to avoid full reload jank
+    const ped = cache.pedidos.find(p=>p.id===id);
+    if(ped) ped.status = status;
+    renderTab();
+  }catch(err){ toast('Erro: '+err.message); }
+}
+
+/* ---------- AVALIAÇÕES ---------- */
+function renderAvaliacoes(c){
+  let html = `<div class="section-head"><h2>Avaliações</h2><span class="count-pill">${cache.avaliacoes.length}</span></div>`;
+
+  if(cache.avaliacoes.length === 0){
+    html += `<div class="empty"><div class="ic">⭐</div><div class="t">Nenhuma avaliação ainda</div><div class="s">Avaliações de clientes que já compraram aparecem aqui.</div></div>`;
+  }
+
+  cache.avaliacoes.forEach(av=>{
+    const prod = cache.produtos.find(p=>p.id===av.produto_id);
+    const stars = '⭐'.repeat(Math.floor(av.nota)) + (av.nota%1!==0?'✨':'');
+    html += `
+      <div class="item-card" style="align-items:flex-start; flex-direction:column; gap:6px;">
+        <div class="t">${prod?esc(prod.nome):'Produto removido'}</div>
+        <div style="font-size:14px; color:var(--ambar); font-weight:700;">${stars} ${av.nota}</div>
+        ${av.comentario?`<div class="s" style="color:var(--tinta);">"${esc(av.comentario)}"</div>`:''}
+      </div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+/* ---------- COMUNICADOS ---------- */
+function renderComunicados(c){
+  // filter out expired ones defensively (in case DB still has stale rows)
+  const ativos = cache.comunicados.filter(com => new Date(com.expira_em) > new Date());
+
+  let html = `<div class="section-head"><h2>Comunicados</h2><span class="count-pill">${ativos.length}</span></div>`;
+  html += `<div class="s" style="font-size:12.5px; color:var(--tinta-suave); margin:-8px 0 16px; line-height:1.5;">Comunicados aparecem para os clientes assim que abrem o app e desaparecem sozinhos depois de 12 horas.</div>`;
+
+  if(ativos.length === 0){
+    html += `<div class="empty"><div class="ic">📢</div><div class="t">Nenhum comunicado ativo</div><div class="s">Toca no + para publicar um aviso para os clientes.</div></div>`;
+  }
+
+  ativos.forEach(com=>{
+    const expira = new Date(com.expira_em);
+    const horasRestantes = Math.max(0, Math.round((expira - new Date()) / 3600000));
+    html += `
+      <div class="comunicado-card">
+        <div class="comunicado-title">${esc(com.titulo)}</div>
+        <div class="comunicado-msg">${esc(com.mensagem)}</div>
+        <div class="comunicado-meta">
+          <span class="comunicado-timer">⏱️ Expira em ${horasRestantes}h</span>
+          <button class="icon-btn danger" style="width:28px; height:28px; font-size:13px;" onclick="deleteComunicado('${com.id}')">🗑️</button>
+        </div>
+      </div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+function openComunicadoForm(){
+  const html = `
+    <div class="sheet-handle"></div>
+    <h3 class="sheet-title">Novo comunicado</h3>
+    <div class="field">
+      <label>Título</label>
+      <input type="text" id="f_com_titulo" placeholder="Ex: Horário especial hoje">
+    </div>
+    <div class="field">
+      <label>Mensagem</label>
+      <textarea id="f_com_msg" placeholder="Escreve o aviso para os clientes..."></textarea>
+    </div>
+    <div class="s" style="font-size:12px; color:var(--tinta-suave); margin-bottom:14px;">Este comunicado vai aparecer para todos os clientes por 12 horas a partir de agora.</div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" onclick="closeSheet()">Cancelar</button>
+      <button class="btn btn-primary" id="saveComBtn" onclick="saveComunicado()">Publicar</button>
+    </div>`;
+  openSheet(html);
+}
+async function saveComunicado(){
+  const titulo = document.getElementById('f_com_titulo').value.trim();
+  const mensagem = document.getElementById('f_com_msg').value.trim();
+  if(!titulo || !mensagem){ toast('Preenche o título e a mensagem.'); return; }
+  const btn = document.getElementById('saveComBtn');
+  btn.disabled = true; btn.textContent = 'Publicando…';
+  try{
+    const {error} = await sb.from('comunicados').insert({titulo, mensagem});
+    if(error) throw error;
+    toast('Comunicado publicado ✓');
+    closeSheet();
+    loadAll();
+  }catch(err){
+    toast('Erro: '+err.message);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Publicar';
+  }
+}
+async function deleteComunicado(id){
+  if(!confirm('Remover este comunicado antes da hora?')) return;
+  try{
+    const {error} = await sb.from('comunicados').delete().eq('id', id);
+    if(error) throw error;
+    toast('Comunicado removido');
+    loadAll();
+  }catch(err){ toast('Erro: '+err.message); }
+}
+
+/* ---------- SHEET ---------- */
+function openSheet(html){
+  document.getElementById('sheet').innerHTML = html;
+  document.getElementById('sheetBackdrop').classList.add('show');
+}
+function closeSheet(){
+  document.getElementById('sheetBackdrop').classList.remove('show');
+}
+
+/* also fetch pedido_itens for pedidos tab */
+async function loadPedidoItens(){
+  const {data} = await sb.from('pedido_itens').select('*');
+  cache.pedido_itens_all = data || [];
+}
+
+/* ---------- INIT ---------- */
+(async function init(){
+  await checkSession();
+})();
+</script>
+</body>
+</html>
