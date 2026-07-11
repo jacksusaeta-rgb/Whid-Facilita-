@@ -35,7 +35,7 @@
   html,body{margin:0;padding:0;}
   body{
     font-family:'Inter',sans-serif;
-    background:var(--creme);
+    background:var(--verde-900);
     color:var(--tinta);
     min-height:100vh;
     padding-bottom:90px;
@@ -55,6 +55,28 @@
       linear-gradient(90deg, rgba(57,255,138,0.025) 1px, transparent 1px);
     background-size:26px 26px;
     mask-image:radial-gradient(circle at 50% 0%, black, transparent 70%);
+  }
+
+  /* ===== RESPONSIVO: telas maiores ganham mais largura e respiro ===== */
+  @media (min-width:720px){
+    body{ padding-bottom:64px; }
+    .app{
+      max-width:640px;
+      margin:28px auto;
+      min-height:calc(100vh - 56px);
+      border-radius:20px;
+      border:1px solid var(--linha);
+      overflow:hidden;
+      box-shadow:0 30px 80px -20px rgba(0,0,0,0.6);
+    }
+    .sheet{ max-width:640px; border-radius:20px; }
+    .sheet-backdrop{ align-items:center; padding:20px; }
+    .sheet-backdrop .sheet{ max-height:85vh; border-radius:20px; animation:none; }
+  }
+  @media (min-width:1000px){
+    .app{ max-width:760px; }
+    .sheet{ max-width:520px; }
+    .content{ padding-left:28px; padding-right:28px; }
   }
 
   /* ===== TOPBAR ===== */
@@ -191,12 +213,17 @@
 
   /* ===== FAB ===== */
   .fab{
-    position:fixed; bottom:24px; right:50%; transform:translateX(280px);
+    position:fixed; bottom:24px; right:24px;
     width:56px; height:56px; border-radius:50%; background:var(--acid); color:var(--texto-invertido);
     border:none; font-size:26px; box-shadow:0 0 24px -4px var(--acid-glow);
     display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:30;
   }
-  @media (max-width:620px){ .fab{ right:24px; transform:none; } }
+  @media (min-width:720px){
+    .fab{ right:calc(50vw - 320px + 24px); max-width:calc(50vw - 320px + 24px); }
+  }
+  @media (min-width:1000px){
+    .fab{ right:calc(50vw - 380px + 24px); }
+  }
 
   /* ===== EMPTY STATE ===== */
   .empty{
