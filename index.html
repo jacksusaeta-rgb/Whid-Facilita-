@@ -29,15 +29,49 @@
   html,body{margin:0;padding:0;}
   body{
     font-family:'Inter',sans-serif;
-    background:var(--bg);
+    background:var(--bg-deep);
     color:var(--text);
     min-height:100vh;
     padding-bottom:104px;
   }
   h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif; font-weight:700; letter-spacing:-0.01em;}
   .mono{font-family:'IBM Plex Mono',monospace;}
-  .app{max-width:560px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;}
+  .app{
+    max-width:560px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    position:relative;
+  }
   button{font-family:'Inter',sans-serif;}
+
+  /* ===== RESPONSIVO: telas maiores ganham mais largura e respiro ===== */
+  @media (min-width:720px){
+    body{ padding-bottom:64px; }
+    .app{
+      max-width:640px;
+      margin:28px auto;
+      min-height:calc(100vh - 56px);
+      border-radius:20px;
+      border:1px solid var(--line);
+      overflow:hidden;
+      box-shadow:0 30px 80px -20px rgba(0,0,0,0.6);
+    }
+    .cart-fab{ max-width:608px; }
+    .sheet{ max-width:640px; border-radius:20px; }
+    .sheet-backdrop{ align-items:center; padding:20px; }
+    .sheet-backdrop .sheet{ max-height:85vh; border-radius:20px; animation:none; }
+  }
+  @media (min-width:1000px){
+    .app{ max-width:760px; }
+    .cart-fab{ max-width:728px; }
+    .sheet{ max-width:520px; }
+    .content{ padding-left:28px; padding-right:28px; }
+    .hero{ padding-left:28px; padding-right:28px; }
+    .search-wrap{ padding-left:28px; padding-right:28px; }
+    .prod-card{ padding:16px; }
+    .prod-img{ width:88px; height:88px; }
+  }
 
   /* subtle scanline / grid texture on background */
   .app::before{
@@ -524,6 +558,30 @@
 
 <script>
 /* ============================================================
+   CAPTADOR DE ERROS — mostra qualquer erro de JS direto na tela,
+   sem precisar abrir o console do navegador. Temporário para diagnóstico.
+   ============================================================ */
+window.addEventListener('error', function(e){
+  showDebugError(e.message + ' — linha ' + e.lineno + ' — ' + (e.filename||'').split('/').pop());
+});
+window.addEventListener('unhandledrejection', function(e){
+  showDebugError('Promise rejeitada: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+function showDebugError(msg){
+  let box = document.getElementById('debugErrorBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'debugErrorBox';
+    box.style.cssText = 'position:fixed; top:0; left:0; right:0; background:#ff2d2d; color:#fff; padding:14px; font-family:monospace; font-size:12px; z-index:99999; max-height:40vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;';
+    document.body.appendChild(box);
+  }
+  const line = document.createElement('div');
+  line.style.cssText = 'border-bottom:1px solid rgba(255,255,255,0.3); padding:6px 0;';
+  line.textContent = '⚠️ ERRO: ' + msg;
+  box.appendChild(line);
+}
+
+/* ============================================================
    WHIDÚFACILITA — APP PÚBLICO
    ============================================================ */
 const SUPABASE_URL = "https://elsfqnvddwwiilckyxmj.supabase.co";
@@ -580,7 +638,6 @@ function normalizarTelefone(t){
 const SCREENS = ['screenCadastro','screenConfirma','screenHub','screenCatalogo','screenHistorico','screenComunicados'];
 function showScreen(id){
   SCREENS.forEach(s=> document.getElementById(s).style.display = (s===id) ? 'block' : 'none');
-  document.getElementById('cartFab').style.display = 'none';
   updateCartUI();
   window.scrollTo(0,0);
 }
@@ -776,7 +833,7 @@ function renderProducts(){
       const rating = ratingsMap[p.id];
       const inCart = cart[p.id];
       html += `
-        <div class="prod-card" onclick="openProductDetail('${p.id}')">
+        <div class="prod-card" data-produto-id="${p.id}" data-action="open-detail">
           <div class="prod-img">${p.imagem_url ? `<img src="${esc(p.imagem_url)}">` : '◇'}</div>
           <div class="prod-body">
             <div class="prod-name">${esc(p.nome)}</div>
@@ -784,14 +841,14 @@ function renderProducts(){
             ${rating ? `<div class="prod-rating">★ ${rating.avg.toFixed(1)} <span class="n">(${rating.count})</span></div>` : ''}
             <div class="prod-bottom">
               <div class="prod-price">${fmtKz(p.preco)}</div>
-              <div id="prodActions-${p.id}" onclick="event.stopPropagation()">
+              <div class="prod-actions-holder" data-produto-id="${p.id}">
                 ${inCart
                   ? `<div class="qty-stepper">
-                       <button onclick="changeQty('${p.id}',-1,event)">−</button>
+                       <button data-action="dec-qty" data-produto-id="${p.id}">−</button>
                        <div class="qv">${inCart.qty}</div>
-                       <button onclick="changeQty('${p.id}',1,event)">+</button>
+                       <button data-action="inc-qty" data-produto-id="${p.id}">+</button>
                      </div>`
-                  : `<button class="add-btn" onclick="addToCart('${p.id}',event)">+</button>`
+                  : `<button class="add-btn" data-action="add-cart" data-produto-id="${p.id}">+</button>`
                 }
               </div>
             </div>
@@ -809,9 +866,44 @@ function renderProducts(){
   c.innerHTML = html;
 }
 
+/* ---------- DELEGAÇÃO DE EVENTOS (catálogo) ----------
+   Um único listener no container 'content', em vez de onclick inline
+   espalhados por cada card. Isso evita qualquer problema de clique
+   "vazando" para o elemento errado quando o DOM é atualizado. */
+document.getElementById('content').addEventListener('click', function(e){
+  const actionEl = e.target.closest('[data-action]');
+  if(!actionEl) return;
+
+  const action = actionEl.dataset.action;
+  const produtoId = actionEl.dataset.produtoId;
+
+  if(action === 'add-cart'){
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(produtoId);
+    return;
+  }
+  if(action === 'inc-qty'){
+    e.preventDefault();
+    e.stopPropagation();
+    changeQty(produtoId, 1);
+    return;
+  }
+  if(action === 'dec-qty'){
+    e.preventDefault();
+    e.stopPropagation();
+    changeQty(produtoId, -1);
+    return;
+  }
+  if(action === 'open-detail'){
+    openProductDetail(produtoId);
+    return;
+  }
+});
+
 /* ---------- CART ---------- */
-function addToCart(id, evt){
-  if(evt) evt.stopPropagation();
+/* ---------- CART ---------- */
+function addToCart(id){
   const p = cache.produtos.find(x=>x.id===id);
   if(!p) return;
   if(!cart[id]) cart[id] = {produto:p, qty:0};
@@ -820,8 +912,7 @@ function addToCart(id, evt){
   updateProductCardInPlace(id);
   toast(`${p.nome} adicionado ✓`);
 }
-function changeQty(id, delta, evt){
-  if(evt) evt.stopPropagation();
+function changeQty(id, delta){
   if(!cart[id]) return;
   cart[id].qty += delta;
   if(cart[id].qty <= 0) delete cart[id];
@@ -839,20 +930,18 @@ function updateCartUI(){
   fab.classList.toggle('show', count > 0 && catalogoVisible);
 }
 
-/* Atualiza só o bloco de quantidade/botão de UM produto, sem redesenhar a lista inteira.
-   Isso evita que o elemento clicado seja substituído no meio do próprio evento de clique
-   (o que causava o clique "vazar" para o card pai e travar a tela). */
+/* Atualiza só o bloco de quantidade/botão de UM produto, sem redesenhar a lista inteira. */
 function updateProductCardInPlace(productId){
-  const holder = document.getElementById('prodActions-' + productId);
+  const holder = document.querySelector(`.prod-actions-holder[data-produto-id="${productId}"]`);
   if(!holder) return; // produto não está na tela atual (ex: outra aba/filtro)
   const inCart = cart[productId];
   holder.innerHTML = inCart
-    ? `<div class="qty-stepper" onclick="event.stopPropagation()">
-         <button onclick="changeQty('${productId}',-1,event)">−</button>
+    ? `<div class="qty-stepper">
+         <button data-action="dec-qty" data-produto-id="${productId}">−</button>
          <div class="qv">${inCart.qty}</div>
-         <button onclick="changeQty('${productId}',1,event)">+</button>
+         <button data-action="inc-qty" data-produto-id="${productId}">+</button>
        </div>`
-    : `<button class="add-btn" onclick="addToCart('${productId}',event)">+</button>`;
+    : `<button class="add-btn" data-action="add-cart" data-produto-id="${productId}">+</button>`;
 }
 
 function openCart(){
